@@ -1,0 +1,67 @@
+name: Deploy
+
+# Ships only what passed CI: this waits for the CI workflow to succeed on
+# main, then deploys the Worker (+ D1 schema) and the Pages app.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # workflow_run fires on failure too — only ship green builds.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      PLATFORM_URL: https://coderkidz-platform.joseph-ke-han.workers.dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Apply D1 schema (idempotent — CREATE TABLE IF NOT EXISTS)
+        working-directory: services/platform
+        run: pnpm exec wrangler d1 execute coderkidz-platform --remote --file=./schema.sql -y
+
+      - name: Deploy platform Worker
+        working-directory: services/platform
+        run: pnpm exec wrangler deploy
+
+      - name: Build app against the live platform
+        working-directory: apps/coderkidz
+        run: pnpm build
+        env:
+          VITE_PLATFORM_URL: ${{ env.PLATFORM_URL }}
+
+      - name: Deploy app to Pages
+        working-directory: services/platform
+        run: >-
+          pnpm exec wrangler pages deploy ../../apps/coderkidz/dist
+          --project-name=coderkidz --branch=main --commit-dirty=true
+
+      - name: Smoke-test production
+        run: |
+          set -e
+          echo "— API health"
+          curl -fsS "$PLATFORM_URL/api/health" | tee /dev/stderr | grep -q '"ok":true'
+          echo "— app shell"
+          curl -fsS -o /dev/null -w '%{http_code}\n' https://coderkidz.pages.dev/
+          echo "— pyodide runtime asset"
+          curl -fsS -o /dev/null -w '%{http_code}\n' https://coderkidz.pages.dev/pyodide/pyodide.asm.wasm
