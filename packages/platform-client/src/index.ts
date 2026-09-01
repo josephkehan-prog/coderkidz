@@ -1,30 +1,26 @@
-// Client for the suite platform service (classes, rosters, seasons, scores).
-// Game-agnostic: every game in the suite posts through this with its own gameId.
-
-export interface RosterEntry {
-  /** Display name only — e.g. "Maya R.". Never a full name. */
-  name: string;
-  /** Team/room within the class (e.g. "Hamilton"). Optional. */
-  team: string | null;
-}
+// Client for the suite platform service (classes, seats, personas, scores).
+// Game-agnostic: every game in the suite posts through this with its own
+// gameId. Zero child PII — identity is an invented persona on an anonymous
+// seat; the seat code is the scholar's credential.
 
 export interface ClassInfo {
   code: string;
   name: string;
-  roster: RosterEntry[];
+  teams: string[];
+  seatsTotal: number;
+  seatsFree: number;
 }
 
-export interface ScorePost {
-  gameId: string;
-  classCode: string;
-  seasonId: string;
-  playerName: string;
-  score: number;
-  detail?: Record<string, number>;
+export interface ClaimResult {
+  ok: true;
+  persona: string;
+  avatar: string;
+  team: string | null;
 }
 
 export interface BoardRow {
-  playerName: string;
+  persona: string;
+  avatar: string | null;
   team: string | null;
   score: number;
   updatedAt: string;
@@ -33,6 +29,22 @@ export interface BoardRow {
 export interface Board {
   seasonId: string;
   rows: BoardRow[];
+}
+
+export interface TeacherSeat {
+  seatCode: string;
+  persona: string | null;
+  avatar: string | null;
+  team: string | null;
+  claimedAt: string | null;
+}
+
+export interface CreatedClass {
+  code: string;
+  teacherKey: string;
+  name: string;
+  teams: string[];
+  seatCodes: string[];
 }
 
 export class PlatformError extends Error {
@@ -63,16 +75,33 @@ export class PlatformClient {
     private gameId: string,
   ) {}
 
-  /** Look up a class by its join code (scholar flow). */
   getClass(code: string): Promise<ClassInfo> {
     return request<ClassInfo>(this.baseUrl, `/api/classes/${encodeURIComponent(code)}`);
   }
 
-  /** Post a season score. Server keeps best-per-player. */
-  postScore(post: Omit<ScorePost, "gameId">): Promise<{ ok: true }> {
+  claimSeat(input: {
+    classCode: string;
+    seatCode: string;
+    persona: string;
+    avatar: string;
+    team?: string | null;
+  }): Promise<ClaimResult> {
+    return request<ClaimResult>(this.baseUrl, `/api/personas/claim`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  }
+
+  /** Post a season score. Seat code authenticates; server keeps best-per-seat. */
+  postScore(input: {
+    classCode: string;
+    seatCode: string;
+    seasonId: string;
+    score: number;
+  }): Promise<{ ok: true }> {
     return request<{ ok: true }>(this.baseUrl, `/api/scores`, {
       method: "POST",
-      body: JSON.stringify({ ...post, gameId: this.gameId }),
+      body: JSON.stringify({ ...input, gameId: this.gameId }),
     });
   }
 
@@ -81,5 +110,20 @@ export class PlatformClient {
       this.baseUrl,
       `/api/boards/${encodeURIComponent(classCode)}/${encodeURIComponent(this.gameId)}/${encodeURIComponent(seasonId)}`,
     );
+  }
+
+  // ---- Teacher surface -----------------------------------------------------
+
+  createClass(input: { name: string; seats: number; teams?: string[] }): Promise<CreatedClass> {
+    return request<CreatedClass>(this.baseUrl, `/api/teacher/classes`, {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  }
+
+  getSeats(classCode: string, teacherKey: string): Promise<{ code: string; seats: TeacherSeat[] }> {
+    return request(this.baseUrl, `/api/teacher/classes/${encodeURIComponent(classCode)}/seats`, {
+      headers: { "x-teacher-key": teacherKey },
+    });
   }
 }

@@ -1,24 +1,31 @@
 // localStorage persistence. No accounts: the save lives on this device.
 import type { ChallengeResult } from "@coderkidz/game-core";
 
+/** Scholar identity: an invented persona on an anonymous class seat. */
+export interface PersonaIdentity {
+  classCode: string;
+  /** The scholar's credential for score posting. Never shown on boards. */
+  seatCode: string;
+  persona: string;
+  avatar: string;
+  team: string | null;
+}
+
 export interface SaveData {
-  version: 1;
-  /** Display name chosen from the class roster (e.g. "Maya R."), if joined. */
-  playerName: string | null;
-  classCode: string | null;
+  version: 2;
+  identity: PersonaIdentity | null;
   results: ChallengeResult[];
   /** Last code the scholar wrote per challenge, so work survives reloads. */
   code: Record<string, string>;
   updatedAt: string;
 }
 
-const KEY = "coderkidz.save.v1";
+const KEY = "coderkidz.save.v2";
 
 export function emptySave(): SaveData {
   return {
-    version: 1,
-    playerName: null,
-    classCode: null,
+    version: 2,
+    identity: null,
     results: [],
     code: {},
     updatedAt: new Date().toISOString(),
@@ -30,7 +37,7 @@ export function loadSave(): SaveData {
     const raw = localStorage.getItem(KEY);
     if (!raw) return emptySave();
     const parsed = JSON.parse(raw) as SaveData;
-    if (parsed.version !== 1) return emptySave();
+    if (parsed.version !== 2) return emptySave();
     return { ...emptySave(), ...parsed };
   } catch {
     // Corrupt or blocked storage — start fresh rather than crash.

@@ -6,9 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Suite of edutech games; **Coderkidz** (game 1) teaches beginners real Python by
 running a simulated city in the browser. Global multi-tenant: any teacher
-creates a class (join code + display-name roster), scholars play with no
-accounts, season scores post to a class leaderboard. Scholar Python executes in
-**Pyodide inside a Web Worker**; the city engine is deterministic TypeScript.
+creates a class of **anonymous seats** (self-serve console at `/#teacher`),
+hands out printed seat codes, and scholars claim a seat by **inventing a mayor
+persona** — no accounts, no student names of any kind, anywhere. The seat code
+is the scholar's score-posting credential; boards show personas only. Scholar
+Python executes in **Pyodide inside a Web Worker**; the city engine is
+deterministic TypeScript.
 
 ## Commands
 
@@ -74,10 +77,13 @@ Key invariants:
 
 ## Privacy (hard rules)
 
-- No PII anywhere: rosters are display names only ("Maya R."); the Worker
-  rejects full-name-shaped roster entries (`looksLikeDisplayName`). Keep it.
-- Real class rosters never enter the repo — `rosters/` and `*.roster.json`
-  are gitignored. Grep for surnames before any push.
+- **Zero student names, even display names.** Classes are anonymous seats;
+  scholars invent personas. The Worker rejects real-name-shaped personas
+  ("Maya R.", "Maya Rodriguez" — see `personaProblem`). Keep it.
+- Seat codes are credentials: boards and public endpoints must never return
+  them; only the teacher-key-gated seat map does.
+- Teacher maps seat codes → students on paper, offline. Nothing about that
+  mapping ever enters the repo, the database, or logs.
 - No accounts, no email, no analytics on minors.
 
 ## ECC surface (agent-sort, 2026-09-01)

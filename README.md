@@ -7,8 +7,10 @@ Edutech games that teach real skills through simulation. Game 1: **Coderkidz**
   no installs, no accounts).
 - A deterministic city/economy simulator gives every line of code a visible
   consequence: build, feed, price, grow.
-- Competitive **seasons** per curriculum unit; classes join with a code and
-  display names only (no PII), scores post to a class leaderboard.
+- Competitive **seasons** per curriculum unit. Zero student PII by design:
+  teachers create classes of anonymous seats (self-serve `/#teacher` console),
+  scholars claim a seat by inventing a mayor persona, and leaderboards show
+  personas only. Works for any school, any jurisdiction.
 - Semester 1: 4 units, 30 challenges — print/variables → loops →
   conditionals → functions + a 30-day economy capstone.
   See [docs/curriculum.md](docs/curriculum.md).

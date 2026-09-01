@@ -220,3 +220,85 @@ body {
   font-size: 0.9rem;
   color: #456;
 }
+
+/* Teacher console + persona claim */
+.teacher-page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid #dde5da;
+  border-radius: 10px;
+  padding: 16px;
+  margin: 16px 0;
+}
+
+.card input,
+.card select {
+  display: block;
+  width: 100%;
+  margin: 6px 0;
+  padding: 7px;
+  border-radius: 8px;
+  border: 1px solid #cfd8cc;
+}
+
+.card button {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid #cfd8cc;
+  background: var(--accent-soft);
+  cursor: pointer;
+  margin-top: 6px;
+}
+
+.card table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.card th,
+.card td {
+  text-align: left;
+  padding: 4px 8px;
+  border-bottom: 1px solid #eef2ec;
+}
+
+.seat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.seat-grid code {
+  border: 1px dashed #9ab08e;
+  border-radius: 6px;
+  padding: 6px;
+  text-align: center;
+}
+
+.avatar-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 6px 0;
+}
+
+.avatar-row .avatar {
+  font-size: 1.2rem;
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: none;
+  cursor: pointer;
+}
+
+.avatar-row .avatar.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}

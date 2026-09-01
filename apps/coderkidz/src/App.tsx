@@ -1,19 +1,36 @@
 import { useEffect, useMemo, useState } from "react";
 import { computeSeasonScore } from "@coderkidz/game-core";
-import { PlatformClient } from "@coderkidz/platform-client";
+import { PlatformClient, PlatformError } from "@coderkidz/platform-client";
 import { attemptChallenge, type ChallengeAttempt } from "./challenges/engine.js";
 import type { ChallengeSpec } from "./challenges/types.js";
 import { SEASONS, UNITS, findChallenge } from "./content/index.js";
 import { pythonRunner } from "./py/runner.js";
 import { CityCanvas } from "./render/CityCanvas.js";
-import { loadSave, persistSave, recordResult, type SaveData } from "./save/storage.js";
-import { newCity } from "./sim/engine.js";
-import { prosperity } from "./sim/engine.js";
+import {
+  loadSave,
+  persistSave,
+  recordResult,
+  type PersonaIdentity,
+  type SaveData,
+} from "./save/storage.js";
+import { newCity, prosperity } from "./sim/engine.js";
+import { TeacherPage } from "./ui/TeacherPage.js";
 
 const GAME_ID = "coderkidz";
-const platform = new PlatformClient(import.meta.env.VITE_PLATFORM_URL ?? "", GAME_ID);
+export const platform = new PlatformClient(import.meta.env.VITE_PLATFORM_URL ?? "", GAME_ID);
 
 export default function App() {
+  const [route, setRoute] = useState(window.location.hash);
+  useEffect(() => {
+    const onHash = () => setRoute(window.location.hash);
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+  if (route === "#teacher") return <TeacherPage platform={platform} />;
+  return <Workbench />;
+}
+
+function Workbench() {
   const [save, setSave] = useState<SaveData>(() => loadSave());
   const [challengeId, setChallengeId] = useState<string>(UNITS[0]!.challenges[0]!.id);
   const [code, setCode] = useState<string>(
@@ -61,17 +78,17 @@ export default function App() {
   }
 
   async function postScore() {
-    if (!save.playerName || !save.classCode) {
-      setPostStatus("Join your class first (ask your teacher for the class code).");
+    if (!save.identity) {
+      setPostStatus("Claim your mayor persona first (ask your teacher for the class + seat codes).");
       return;
     }
     const bonus = attempt ? prosperity(attempt.outcome.city) : 0;
     const score = computeSeasonScore(season, save.results, bonus);
     try {
       await platform.postScore({
-        classCode: save.classCode,
+        classCode: save.identity.classCode,
+        seatCode: save.identity.seatCode,
         seasonId: season.id,
-        playerName: save.playerName,
         score: score.total,
       });
       setPostStatus(`Posted ${score.total} points to the ${season.title} board!`);
@@ -88,6 +105,12 @@ export default function App() {
     <div className="layout">
       <aside className="sidebar">
         <h1>🏙️ Coderkidz</h1>
+        {save.identity && (
+          <p className="joined">
+            {save.identity.avatar} Mayor {save.identity.persona}
+            {save.identity.team ? ` · Team ${save.identity.team}` : ""}
+          </p>
+        )}
         <p className="xp">⚡ {totalXp} XP</p>
         {UNITS.map((unit) => (
           <section key={unit.id}>
@@ -106,7 +129,9 @@ export default function App() {
             </ul>
           </section>
         ))}
-        <JoinPanel save={save} onJoin={(name, classCode) => update({ ...save, playerName: name, classCode })} />
+        {!save.identity && (
+          <ClaimPanel onClaimed={(identity) => update({ ...save, identity })} />
+        )}
       </aside>
 
       <main className="workbench">
@@ -171,60 +196,112 @@ function HintButton({ hints }: { hints: string[] }) {
   );
 }
 
-function JoinPanel({
-  save,
-  onJoin,
-}: {
-  save: SaveData;
-  onJoin: (name: string, classCode: string) => void;
-}) {
-  const [codeInput, setCodeInput] = useState(save.classCode ?? "");
-  const [names, setNames] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
+const AVATARS = ["🦊", "🐸", "🦄", "🤖", "🐉", "🦅", "🐙", "⚡", "🌟", "🛸"];
 
-  if (save.playerName) {
-    return (
-      <p className="joined">
-        👤 {save.playerName} · class {save.classCode}
-      </p>
-    );
-  }
+function ClaimPanel({ onClaimed }: { onClaimed: (identity: PersonaIdentity) => void }) {
+  const [classCode, setClassCode] = useState("");
+  const [seatCode, setSeatCode] = useState("");
+  const [persona, setPersona] = useState("");
+  const [avatar, setAvatar] = useState(AVATARS[0]!);
+  const [team, setTeam] = useState("");
+  const [teams, setTeams] = useState<string[]>([]);
+  const [className, setClassName] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   async function lookup() {
     setError(null);
     try {
-      const info = await platform.getClass(codeInput.trim().toUpperCase());
-      setNames(info.roster.map((r) => r.name));
+      const info = await platform.getClass(classCode.trim().toUpperCase());
+      setClassName(info.name);
+      setTeams(info.teams);
     } catch {
       setError("Class not found — check the code with your teacher.");
     }
   }
 
+  async function claim() {
+    setError(null);
+    try {
+      const res = await platform.claimSeat({
+        classCode: classCode.trim().toUpperCase(),
+        seatCode: seatCode.trim().toUpperCase(),
+        persona: persona.trim(),
+        avatar,
+        team: team || null,
+      });
+      onClaimed({
+        classCode: classCode.trim().toUpperCase(),
+        seatCode: seatCode.trim().toUpperCase(),
+        persona: res.persona,
+        avatar: res.avatar,
+        team: res.team,
+      });
+    } catch (err) {
+      if (err instanceof PlatformError) {
+        try {
+          const parsed = JSON.parse(err.message) as { detail?: string; error?: string };
+          setError(parsed.detail ?? parsed.error ?? "Could not claim the seat.");
+        } catch {
+          setError("Could not claim the seat.");
+        }
+      } else {
+        setError("Could not reach the class server.");
+      }
+    }
+  }
+
   return (
     <div className="join">
-      <h2>Join your class</h2>
+      <h2>Become a mayor</h2>
       <input
-        value={codeInput}
-        onChange={(e) => setCodeInput(e.target.value)}
+        value={classCode}
+        onChange={(e) => setClassCode(e.target.value)}
         placeholder="Class code"
         aria-label="Class code"
       />
-      <button onClick={lookup}>Find class</button>
-      {error && <p className="status">{error}</p>}
-      {names.length > 0 && (
-        <select
-          aria-label="Pick your name"
-          defaultValue=""
-          onChange={(e) => e.target.value && onJoin(e.target.value, codeInput.trim().toUpperCase())}
-        >
-          <option value="" disabled>
-            Pick your name…
-          </option>
-          {names.map((n) => (
-            <option key={n}>{n}</option>
-          ))}
-        </select>
+      {!className && <button onClick={lookup}>Find class</button>}
+      {className && (
+        <>
+          <p className="joined">Class: {className}</p>
+          <input
+            value={seatCode}
+            onChange={(e) => setSeatCode(e.target.value)}
+            placeholder="Your seat code"
+            aria-label="Seat code"
+          />
+          <input
+            value={persona}
+            onChange={(e) => setPersona(e.target.value)}
+            placeholder="Invent a mayor name (not your real name!)"
+            aria-label="Mayor persona name"
+            maxLength={20}
+          />
+          <div className="avatar-row" role="radiogroup" aria-label="Pick an avatar">
+            {AVATARS.map((a) => (
+              <button
+                key={a}
+                className={a === avatar ? "avatar active" : "avatar"}
+                aria-pressed={a === avatar}
+                onClick={() => setAvatar(a)}
+              >
+                {a}
+              </button>
+            ))}
+          </div>
+          {teams.length > 0 && (
+            <select value={team} onChange={(e) => setTeam(e.target.value)} aria-label="Pick your team">
+              <option value="">Pick your team…</option>
+              {teams.map((t) => (
+                <option key={t}>{t}</option>
+              ))}
+            </select>
+          )}
+          <button onClick={claim} disabled={!seatCode.trim() || !persona.trim()}>
+            🎩 Claim your city
+          </button>
+        </>
       )}
+      {error && <p className="status">{error}</p>}
     </div>
   );
 }
