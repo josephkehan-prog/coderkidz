@@ -78,6 +78,17 @@ Key invariants:
   are gitignored. Grep for surnames before any push.
 - No accounts, no email, no analytics on minors.
 
+## ECC surface (agent-sort, 2026-09-01)
+
+This is a pure TypeScript / React / Vite / Vitest / Cloudflare-Worker repo.
+DAILY ECC surfaces: TS + React reviewers/build-resolvers, security reviewer,
+react/frontend/vite patterns, react-testing + tdd-workflow, accessibility,
+Cloudflare (wrangler, workers-best-practices), error-handling. Everything
+else — Python tooling (zero .py files; scholar Python is content strings),
+other language packs, Postgres/Prisma/Redis, E2E (until Playwright lands),
+domain packs — is LIBRARY: route through `.claude/skills/skill-library/`
+instead of loading by default.
+
 ## Curriculum work
 
 `docs/curriculum.md` is the source of truth for economy numbers and the
