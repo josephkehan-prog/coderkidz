@@ -5,8 +5,8 @@ export default defineConfig({
   timeout: 90_000,
   use: {
     baseURL: "http://localhost:4174",
-    // Uses the machine's installed Chrome — no browser download needed.
-    channel: "chrome",
+    // Locally: the machine's installed Chrome (no download). CI: bundled chromium.
+    ...(process.env.CI ? {} : { channel: "chrome" as const }),
     headless: true,
   },
   webServer: {
