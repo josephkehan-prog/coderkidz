@@ -1,0 +1,23 @@
+{
+  "name": "coderkidz-suite",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Edutech game suite. Game 1: Coderkidz — learn real Python by running a simulated city.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @coderkidz/app dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "platform:dev": "pnpm --filter @coderkidz/platform dev",
+    "platform:deploy": "pnpm --filter @coderkidz/platform deploy"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.3"
+  }
+}

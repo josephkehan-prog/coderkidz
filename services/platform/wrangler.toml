@@ -1,0 +1,11 @@
+name = "coderkidz-platform"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+
+# Local dev works out of the box (`pnpm platform:dev` uses a local SQLite).
+# Before the first remote deploy: `wrangler d1 create coderkidz-platform`,
+# then paste the real database_id below.
+[[d1_databases]]
+binding = "DB"
+database_name = "coderkidz-platform"
+database_id = "00000000-0000-0000-0000-000000000000"

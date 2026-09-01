@@ -1,0 +1,18 @@
+# deps / builds
+node_modules/
+dist/
+.wrangler/
+*.tsbuildinfo
+
+# local env & secrets — never commit
+.env
+.env.*
+.dev.vars
+
+# editor / os noise
+.DS_Store
+*.log
+
+# privacy: real rosters and any class data stay out of the repo
+rosters/
+*.roster.json
