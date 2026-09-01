@@ -16,7 +16,9 @@ const platform = new PlatformClient(import.meta.env.VITE_PLATFORM_URL ?? "", GAM
 export default function App() {
   const [save, setSave] = useState<SaveData>(() => loadSave());
   const [challengeId, setChallengeId] = useState<string>(UNITS[0]!.challenges[0]!.id);
-  const [code, setCode] = useState<string>("");
+  const [code, setCode] = useState<string>(
+    () => save.code[challengeId] ?? findChallenge(challengeId)!.starterCode,
+  );
   const [attempt, setAttempt] = useState<ChallengeAttempt | null>(null);
   const [running, setRunning] = useState(false);
   const [postStatus, setPostStatus] = useState<string | null>(null);
@@ -31,12 +33,15 @@ export default function App() {
     pythonRunner.warmUp();
   }, []);
 
-  useEffect(() => {
+  // Reset the workbench when the scholar switches challenges — done during
+  // render (not an effect) so there's no flash of the previous challenge.
+  const [prevChallengeId, setPrevChallengeId] = useState(challengeId);
+  if (prevChallengeId !== challengeId) {
+    setPrevChallengeId(challengeId);
     setCode(save.code[challengeId] ?? challenge.starterCode);
     setAttempt(null);
     setPostStatus(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [challengeId]);
+  }
 
   const update = (next: SaveData) => {
     setSave(next);
@@ -123,7 +128,7 @@ export default function App() {
                 {running ? "Running…" : "▶ Run"}
               </button>
               <button onClick={() => setCode(challenge.starterCode)}>Reset code</button>
-              <HintButton hints={challenge.hints} />
+              <HintButton key={challenge.id} hints={challenge.hints} />
               <button onClick={postScore}>📤 Post season score</button>
             </div>
             {postStatus && <p className="status">{postStatus}</p>}
@@ -152,8 +157,8 @@ export default function App() {
 }
 
 function HintButton({ hints }: { hints: string[] }) {
+  // Keyed by challenge id at the call site, so state resets on switch.
   const [shown, setShown] = useState(0);
-  useEffect(() => setShown(0), [hints]);
   return (
     <span className="hints">
       {shown < hints.length && (

@@ -21,6 +21,7 @@ Two buckets, decided from repo evidence (2026-09-01 agent-sort pass):
 | `ecc:security-reviewer`, `ecc:security-review` | Worker parses untrusted JSON (`services/platform/src/index.ts`), COPPA posture |
 | `ecc:react-patterns`, `ecc:frontend-patterns`, `ecc:react-performance`, `ecc:vite-patterns` | app stack |
 | `ecc:react-testing`, `ecc:tdd-workflow` | Vitest suites in `sim/`, `content/`, `game-core` |
+| `ecc:e2e-testing`, `ecc:e2e-runner` | Playwright in repo (`apps/coderkidz/e2e/`, chrome channel) — promoted 2026-09-01 |
 | `ecc:accessibility`, `ecc:frontend-a11y` | product serves children on school Chromebooks — a11y is a requirement |
 | `cloudflare:cloudflare`, `cloudflare:wrangler`, `cloudflare:workers-best-practices` | Worker + D1 + Pages target (`wrangler.toml`) |
 | `ecc:error-handling`, `ecc:coding-standards` | cross-cutting TS |
@@ -34,7 +35,7 @@ Two buckets, decided from repo evidence (2026-09-01 agent-sort pass):
   editing those embedded snippets or the shim's Python block.
 - **Other languages** (go/rust/kotlin/swift/flutter/java/cpp/csharp/php/perl/vue/nuxt/dart/harmonyos `*-reviewer`/`*-build`/`*-test`): off-stack, keep for future suite games only if their stack changes (it shouldn't — see CLAUDE.md "Respect the stack").
 - **Databases** (`ecc:postgres-patterns`, `ecc:mysql-patterns`, `ecc:prisma-patterns`, `ecc:redis-patterns`, `ecc:database-migrations`, `ecc:database-reviewer`): storage is Cloudflare **D1 (SQLite)** with one hand-written `schema.sql`; consult only if a real migration story or new store appears.
-- **E2E** (`ecc:e2e-testing`, `ecc:e2e-runner`, `ecc:ui-demo`, `ecc:browser-qa`): no Playwright in repo yet. Promote to DAILY when E2E lands (planned: challenge-flow smoke on Chromebook viewport).
+- **E2E extras** (`ecc:ui-demo`, `ecc:browser-qa`): core E2E promoted to DAILY (Playwright landed 2026-09-01); demo-video and visual-QA extras stay here.
 - **Backend generic** (`ecc:backend-patterns`, `ecc:api-design`, `ecc:nestjs-patterns`, `ecc:fastapi-*`, `ecc:django-*`, `ecc:springboot-*`, `ecc:quarkus-*`, `ecc:laravel-*`): API is 5 Hono routes, already shaped; Cloudflare skills cover the runtime.
 - **Deploy/infra extras** (`ecc:deployment-patterns`, `ecc:docker-patterns`, `ecc:kubernetes-patterns`, `ecc:uncloud`, `cloudflare:durable-objects`, `cloudflare:agents-sdk`, `cloudflare:sandbox-*`): no Docker/K8s/DO in repo.
 - **Domain packs** (healthcare, logistics, energy, customs, inventory, returns, marketing/investor/content, papermill, posthog scouts, ito-*, prediction-market, crypto/EVM): unrelated to this product.

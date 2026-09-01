@@ -18,7 +18,9 @@ pnpm workspace monorepo (Node ≥ 20, pnpm 11).
 pnpm install
 pnpm dev                 # Vite dev server for the game (apps/coderkidz)
 pnpm test                # all workspace tests (Vitest)
+pnpm lint                # ESLint 10 flat config, repo-wide
 pnpm typecheck           # tsc --noEmit everywhere
+pnpm --filter @coderkidz/app test:e2e   # Playwright smokes (installed Chrome, builds not required beyond dist)
 pnpm build               # typecheck + production build (includes pyodide asset copy)
 pnpm platform:dev        # wrangler dev for the leaderboard Worker (port 8787)
 pnpm platform:deploy     # wrangler deploy (needs real D1 database_id first)
@@ -82,12 +84,12 @@ Key invariants:
 
 This is a pure TypeScript / React / Vite / Vitest / Cloudflare-Worker repo.
 DAILY ECC surfaces: TS + React reviewers/build-resolvers, security reviewer,
-react/frontend/vite patterns, react-testing + tdd-workflow, accessibility,
-Cloudflare (wrangler, workers-best-practices), error-handling. Everything
-else — Python tooling (zero .py files; scholar Python is content strings),
-other language packs, Postgres/Prisma/Redis, E2E (until Playwright lands),
-domain packs — is LIBRARY: route through `.claude/skills/skill-library/`
-instead of loading by default.
+react/frontend/vite patterns, react-testing + tdd-workflow, e2e-testing
+(Playwright in `apps/coderkidz/e2e/`), accessibility, Cloudflare (wrangler,
+workers-best-practices), error-handling. Everything else — Python tooling
+(zero .py files; scholar Python is content strings), other language packs,
+Postgres/Prisma/Redis, domain packs — is LIBRARY: route through
+`.claude/skills/skill-library/` instead of loading by default.
 
 ## Curriculum work
 
