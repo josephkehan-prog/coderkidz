@@ -66,3 +66,5 @@ export function computeSeasonScore(
     total: xp + starsTotal * 10 + safeBonus,
   };
 }
+
+export * from "./persona.js";

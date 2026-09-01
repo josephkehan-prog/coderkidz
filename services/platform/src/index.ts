@@ -3,6 +3,7 @@
 // gets seat codes; scholars claim a seat by inventing a mayor persona. The
 // seat code doubles as the scholar's credential — only its holder can post
 // that seat's score. Game-agnostic: every game posts with its own gameId.
+import { personaProblem } from "@coderkidz/game-core";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 
@@ -26,29 +27,10 @@ function cleanText(raw: unknown, max: number): string | null {
   return s.length >= 1 ? s : null;
 }
 
-/**
- * Personas must not smell like real names. Rejected shapes:
- * - "Maya R." / "Maya R" (name + initial)
- * - two plain capitalized words with no fantasy marker ("Maya Rodriguez")
- * Encouraged: "Nova", "MegaBuilder", "Captain Zap", "mayor_of_fun".
- */
-function personaProblem(persona: string): string | null {
-  const parts = persona.split(" ");
-  if (persona.length < 2) return "Persona needs at least 2 characters.";
-  if (parts.length > 3) return "Keep the persona to 3 words or fewer.";
-  const last = parts[parts.length - 1] ?? "";
-  if (parts.length >= 2 && /^[A-Za-z]{1,2}\.?$/.test(last))
-    return "That looks like a real name with an initial. Invent a mayor name instead — like Nova or Captain Zap.";
-  if (
-    parts.length === 2 &&
-    parts.every((p) => /^[A-Z][a-z]{2,}$/.test(p)) &&
-    !/^(Captain|Mayor|Doctor|Professor|Chief|Queen|King|Baron|Lady|Lord|Agent|Major|General|Pilot|Robo|Mega|Ultra|Super)$/i.test(
-      parts[0] ?? "",
-    )
-  )
-    return "That looks like a real first + last name. Invent a mayor name instead — like Skyline Sam or MegaBuilder.";
-  return null;
-}
+// Persona validation lives in @coderkidz/game-core so the generator in the app
+// and this validator can never drift apart. Personas are assembled ONLY from
+// a fixed vocabulary, so a real student name is structurally impossible —
+// no heuristics, no false positives.
 
 // ---- Teacher: create a class of anonymous seats ----------------------------
 app.post("/api/teacher/classes", async (c) => {

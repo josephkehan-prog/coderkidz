@@ -302,3 +302,20 @@ body {
   border-color: var(--accent);
   background: var(--accent-soft);
 }
+
+.persona-preview {
+  margin: 8px 0 4px;
+  font-size: 1rem;
+}
+
+.persona-pickers {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.persona-pickers select {
+  flex: 1 1 30%;
+  min-width: 90px;
+  margin: 0;
+}

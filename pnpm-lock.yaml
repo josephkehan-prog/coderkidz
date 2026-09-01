@@ -90,6 +90,9 @@ importers:
 
   services/platform:
     dependencies:
+      '@coderkidz/game-core':
+        specifier: workspace:*
+        version: link:../../packages/game-core
       hono:
         specifier: ^4.6.14
         version: 4.13.5

@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { computeSeasonScore } from "@coderkidz/game-core";
+import {
+  PERSONA_ADJECTIVES,
+  PERSONA_NOUNS,
+  buildPersona,
+  computeSeasonScore,
+  randomPersona,
+} from "@coderkidz/game-core";
 import { PlatformClient, PlatformError } from "@coderkidz/platform-client";
 import { attemptChallenge, type ChallengeAttempt } from "./challenges/engine.js";
 import type { ChallengeSpec } from "./challenges/types.js";
@@ -201,7 +207,11 @@ const AVATARS = ["🦊", "🐸", "🦄", "🤖", "🐉", "🦅", "🐙", "⚡", 
 function ClaimPanel({ onClaimed }: { onClaimed: (identity: PersonaIdentity) => void }) {
   const [classCode, setClassCode] = useState("");
   const [seatCode, setSeatCode] = useState("");
-  const [persona, setPersona] = useState("");
+  // Persona is assembled from a fixed vocabulary — a real name cannot be typed.
+  const [adjective, setAdjective] = useState<string>(PERSONA_ADJECTIVES[0]!);
+  const [noun, setNoun] = useState<string>(PERSONA_NOUNS[0]!);
+  const [suffix, setSuffix] = useState<number | null>(null);
+  const persona = buildPersona(adjective, noun, suffix);
   const [avatar, setAvatar] = useState(AVATARS[0]!);
   const [team, setTeam] = useState("");
   const [teams, setTeams] = useState<string[]>([]);
@@ -269,13 +279,46 @@ function ClaimPanel({ onClaimed }: { onClaimed: (identity: PersonaIdentity) => v
             placeholder="Your seat code"
             aria-label="Seat code"
           />
-          <input
-            value={persona}
-            onChange={(e) => setPersona(e.target.value)}
-            placeholder="Invent a mayor name (not your real name!)"
-            aria-label="Mayor persona name"
-            maxLength={20}
-          />
+          <p className="persona-preview">
+            Mayor <strong>{persona}</strong>
+          </p>
+          <div className="persona-pickers">
+            <select
+              value={adjective}
+              onChange={(e) => setAdjective(e.target.value)}
+              aria-label="Persona first word"
+            >
+              {PERSONA_ADJECTIVES.map((a) => (
+                <option key={a}>{a}</option>
+              ))}
+            </select>
+            <select value={noun} onChange={(e) => setNoun(e.target.value)} aria-label="Persona second word">
+              {PERSONA_NOUNS.map((n) => (
+                <option key={n}>{n}</option>
+              ))}
+            </select>
+            <select
+              value={suffix ?? ""}
+              onChange={(e) => setSuffix(e.target.value ? Number(e.target.value) : null)}
+              aria-label="Optional lucky number"
+            >
+              <option value="">no number</option>
+              {Array.from({ length: 98 }, (_, i) => i + 2).map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            onClick={() => {
+              const [a, n] = randomPersona().split(" ");
+              setAdjective(a!);
+              setNoun(n!);
+            }}
+          >
+            🎲 Surprise me
+          </button>
           <div className="avatar-row" role="radiogroup" aria-label="Pick an avatar">
             {AVATARS.map((a) => (
               <button
@@ -296,7 +339,7 @@ function ClaimPanel({ onClaimed }: { onClaimed: (identity: PersonaIdentity) => v
               ))}
             </select>
           )}
-          <button onClick={claim} disabled={!seatCode.trim() || !persona.trim()}>
+          <button onClick={claim} disabled={!seatCode.trim()}>
             🎩 Claim your city
           </button>
         </>
