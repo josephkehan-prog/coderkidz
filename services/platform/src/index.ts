@@ -32,8 +32,57 @@ function cleanText(raw: unknown, max: number): string | null {
 // a fixed vocabulary, so a real student name is structurally impossible —
 // no heuristics, no false positives.
 
+/** Classes one client may create per day. Generous for a real teacher,
+ *  useless for someone trying to fill the database. */
+const CLASSES_PER_DAY = 10;
+
+/**
+ * Identify a client for rate limiting WITHOUT storing an IP. The hash is
+ * salted with the UTC day, so yesterday's rows can never be correlated to
+ * today's client, and nothing in the table identifies a person.
+ */
+async function clientBucket(ip: string): Promise<{ hash: string; day: string }> {
+  const day = new Date().toISOString().slice(0, 10);
+  const bytes = new TextEncoder().encode(`${day}:${ip}`);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  const hash = [...new Uint8Array(digest)]
+    .slice(0, 16)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  return { hash, day };
+}
+
+/** Returns true when the caller is over quota. Counts the attempt either way. */
+async function overCreationQuota(db: D1Database, ip: string): Promise<boolean> {
+  const { hash, day } = await clientBucket(ip);
+  await db
+    .prepare(
+      `INSERT INTO creation_limits (ip_hash, window_day, count) VALUES (?, ?, 1)
+       ON CONFLICT (ip_hash, window_day) DO UPDATE SET count = count + 1`,
+    )
+    .bind(hash, day)
+    .run();
+  const row = await db
+    .prepare("SELECT count FROM creation_limits WHERE ip_hash = ? AND window_day = ?")
+    .bind(hash, day)
+    .first<{ count: number }>();
+  // Opportunistic cleanup so the table cannot grow without bound.
+  await db.prepare("DELETE FROM creation_limits WHERE window_day < ?").bind(day).run();
+  return (row?.count ?? 0) > CLASSES_PER_DAY;
+}
+
 // ---- Teacher: create a class of anonymous seats ----------------------------
 app.post("/api/teacher/classes", async (c) => {
+  const ip = c.req.header("cf-connecting-ip") ?? "unknown";
+  if (await overCreationQuota(c.env.DB, ip)) {
+    return c.json(
+      {
+        error: "rate_limited",
+        detail: `Only ${CLASSES_PER_DAY} classes can be created per day from one place. Try again tomorrow, or reuse an existing class code.`,
+      },
+      429,
+    );
+  }
   const body = await c.req.json().catch(() => null);
   if (!body || typeof body !== "object") return c.json({ error: "bad_json" }, 400);
   const b = body as Record<string, unknown>;

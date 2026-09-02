@@ -36,3 +36,13 @@ CREATE TABLE IF NOT EXISTS scores (
 
 CREATE INDEX IF NOT EXISTS idx_scores_board
   ON scores (class_code, game_id, season_id, score DESC);
+
+-- Abuse control for the open, self-serve class-creation endpoint.
+-- Stores a SHA-256 hash of (day + client IP), never the IP itself, so the
+-- zero-PII posture holds: rows are unlinkable to a person and roll over daily.
+CREATE TABLE IF NOT EXISTS creation_limits (
+  ip_hash TEXT NOT NULL,
+  window_day TEXT NOT NULL,
+  count INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (ip_hash, window_day)
+);
