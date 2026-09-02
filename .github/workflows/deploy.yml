@@ -34,6 +34,25 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      # Fail fast with an actionable message. An empty secret is the common
+      # case: `gh secret set` reads empty stdin without a TTY, exits 0, and
+      # creates a secret that LOOKS set — wrangler then fails 40s later with
+      # a generic auth error.
+      - name: Preflight — credentials present
+        run: |
+          missing=0
+          for var in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID; do
+            value="${!var}"
+            if [ -z "$value" ]; then
+              echo "::error::$var is missing or EMPTY. Set it from a real terminal:"
+              echo "::error::  gh secret set $var   (piping from 1Password also works)"
+              missing=1
+            else
+              echo "$var present (${#value} chars)"
+            fi
+          done
+          exit $missing
+
       - run: pnpm install --frozen-lockfile
 
       - name: Apply D1 schema (idempotent — CREATE TABLE IF NOT EXISTS)
